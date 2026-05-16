@@ -82,6 +82,7 @@ jobs:
             echo "::add-mask::$KEY_PASSWORD"
 
             echo "✅ Keystore parameters extracted from KEYSTORE_SET"
+            echo "✅ Skipping GDRIVE check"
           else
             echo "ℹ️ KEYSTORE_SET not provided, using separate secrets."
             echo "KEYSTORE_BASE64=${{ secrets.KEYSTORE_BASE64 }}" >> $GITHUB_ENV
