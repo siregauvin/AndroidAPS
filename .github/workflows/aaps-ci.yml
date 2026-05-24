@@ -365,6 +365,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with: 
           name: AAPS-release
-          path: "./*.apk"
+          path: app/build/outputs/apk/fullRelease/*.apk
+            wear/build/outputs/apk/fullRelease/*.apk
           retention-days: 30
           
