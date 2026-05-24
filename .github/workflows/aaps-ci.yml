@@ -54,7 +54,7 @@ on:
           - aapsclient2Debug
           - pumpcontrolRelease
           - pumpcontrolDebug
-          - wear
+          - :wear:assembleFullRelease
 
 jobs:
   build:
