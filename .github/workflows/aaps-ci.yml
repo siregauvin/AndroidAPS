@@ -257,10 +257,7 @@ jobs:
           mv app/build/outputs/apk/${{ env.VARIANT_FLAVOR }}/${{ env.VARIANT_TYPE }}/*.apk aaps-${{ env.VERSION }}${{ env.VERSION_SUFFIX }}.apk
           mv wear/build/outputs/apk/${{ env.VARIANT_FLAVOR }}/${{ env.VARIANT_TYPE }}/*.apk aaps-wear-${{ env.VERSION }}${{ env.VERSION_SUFFIX }}.apk
 
-      
-
-         
-
+    
           - name: Upload APK directly to GitHub
           uses: actions/upload-artifact@v4
           with:
@@ -274,7 +271,7 @@ jobs:
 
             
 
-            echo "✅ Uploaded: $NAME"
+            
           
 
          
