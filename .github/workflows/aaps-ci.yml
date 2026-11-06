@@ -76,7 +76,7 @@ jobs:
           S_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           S_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           S_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-         
+          
         run: |
           # The heredoc form of GITHUB_ENV keeps any value intact, newlines
           # included. The delimiter is random so that no value can close the
@@ -170,8 +170,8 @@ jobs:
       
 
           
-
      
+          
 
       - name: Checkout source code at tag
         uses: actions/checkout@v5
@@ -259,22 +259,51 @@ jobs:
 
       
 
-          
+          echo "📁 Checking or creating AAPS folder"
+          AAPS_FOLDER_ID=$(curl -s -X GET \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://www.googleapis.com/drive/v3/files?q=name='AAPS'+and+mimeType='application/vnd.google-apps.folder'+and+trashed=false" \
+            | jq -r '.files[0].id')
+
+          if [ "$AAPS_FOLDER_ID" == "null" ] || [ -z "$AAPS_FOLDER_ID" ]; then
+            AAPS_FOLDER_ID=$(curl -s -X POST \
+              -H "Authorization: Bearer $ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"name": "AAPS", "mimeType": "application/vnd.google-apps.folder"}' \
+              "https://www.googleapis.com/drive/v3/files" | jq -r '.id')
+            echo "📂 Created AAPS folder: $AAPS_FOLDER_ID"
+          else
+            echo "📂 Found AAPS folder: $AAPS_FOLDER_ID"
+          fi
+
+          echo "📁 Checking or creating version folder: $VERSION"
+          VERSION_FOLDER_ID=$(curl -s -X GET \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://www.googleapis.com/drive/v3/files?q=name='${VERSION}'+and+mimeType='application/vnd.google-apps.folder'+and+'$AAPS_FOLDER_ID'+in+parents+and+trashed=false" \
+            | jq -r '.files[0].id')
+
+          if [ "$VERSION_FOLDER_ID" == "null" ] || [ -z "$VERSION_FOLDER_ID" ]; then
+            VERSION_FOLDER_ID=$(curl -s -X POST \
+              -H "Authorization: Bearer $ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\": \"${VERSION}\", \"mimeType\": \"application/vnd.google-apps.folder\", \"parents\": [\"$AAPS_FOLDER_ID\"]}" \
+              "https://www.googleapis.com/drive/v3/files" | jq -r '.id')
+            echo "📂 Created version folder: $VERSION_FOLDER_ID"
+          else
+            echo "📂 Found version folder: $VERSION_FOLDER_ID"
+          fi
 
           
 
-          
+            
+
+            
+
+            
 
            
 
-            
-
-            
           
-
-         
-         
-
   # Configuration: Threshold-based cleanup
   # Clean up only occurs when total runs exceed: keep_runs + keep_threshold (e.g., 20 + 5 = 25)
   cleanup:
