@@ -167,41 +167,7 @@ jobs:
           rm -f "$KEYTOOL_LOG"
           echo "✅ Keystore and credentials validated."
 
-      - name: Decode GDrive OAuth2 secrets
-        run: |
-          # GDRIVE_OAUTH2 is already in the environment from the decode step
-          # above, so nothing has to be pasted into the script text here either.
-          DELIM="AAPS_EOF_$(openssl rand -hex 16)"
-          emit_masked() {
-            echo "::add-mask::$2"
-            printf '%s<<%s\n%s\n%s\n' "$1" "$DELIM" "$2" "$DELIM" >> "$GITHUB_ENV"
-          }
-
-          echo "🔐 Decoding GDRIVE_OAUTH2..."
-          DECODED=$(printf '%s' "$GDRIVE_OAUTH2" | base64 -d)
-
-          emit_masked GDRIVE_CLIENT_ID     "$(printf '%s' "$DECODED" | cut -d'|' -f1)"
-          emit_masked GDRIVE_REFRESH_TOKEN "$(printf '%s' "$DECODED" | cut -d'|' -f2)"
-
-          echo "✅ GDRIVE_CLIENT_ID and GDRIVE_REFRESH_TOKEN extracted from GDRIVE_OAUTH2"
-
-      - name: Retrieving Google Drive access token
-        run: |
-          echo "🔐 Getting Google OAuth2 access token..."
-          TOKEN_RESPONSE=$(curl -s -X POST https://oauth2.googleapis.com/token \
-            -d client_id="$GDRIVE_CLIENT_ID" \
-            -d refresh_token="$GDRIVE_REFRESH_TOKEN" \
-            -d grant_type=refresh_token)
-          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r .access_token)
-          echo "::add-mask::$ACCESS_TOKEN"
-          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-            echo "❌ Failed to get access token."
-            echo "$TOKEN_RESPONSE"
-            exit 1
-          fi
-          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
-          echo "✅ Access token obtained."
-
+      
       - name: Checkout source code at tag
         uses: actions/checkout@v5
         with:
