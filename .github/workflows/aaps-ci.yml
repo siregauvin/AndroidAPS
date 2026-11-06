@@ -119,7 +119,7 @@ jobs:
           }
 
           # Check secrets
-          c
+          
 
           check_secret "$KEYSTORE_BASE64" "KEYSTORE_BASE64"
           check_secret "$KEYSTORE_PASSWORD" "KEYSTORE_PASSWORD"
@@ -277,10 +277,8 @@ jobs:
             echo "✅ Uploaded: $NAME"
           
 
-          upload_to_gdrive "aaps-${VERSION}${VERSION_SUFFIX}.apk" "aaps-${VERSION}${VERSION_SUFFIX}.apk"
-          upload_to_gdrive "aaps-wear-${VERSION}${VERSION_SUFFIX}.apk" "aaps-wear-${VERSION}${VERSION_SUFFIX}.apk"
-
-          echo "🎉 APKs successfully uploaded to Google Drive!"
+         
+          
 
   # Configuration: Threshold-based cleanup
   # Clean up only occurs when total runs exceed: keep_runs + keep_threshold (e.g., 20 + 5 = 25)
