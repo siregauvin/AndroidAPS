@@ -167,7 +167,26 @@ jobs:
           rm -f "$KEYTOOL_LOG"
           echo "✅ Keystore and credentials validated."
 
+      - name: Decode GDrive OAuth2 secrets
+        run: |
+          # GDRIVE_OAUTH2 is already in the environment from the decode step
+          # above, so nothing has to be pasted into the script text here either.
+          DELIM="AAPS_EOF_$(openssl rand -hex 16)"
+          emit_masked() {
+            echo "::add-mask::$2"
+            printf '%s<<%s\n%s\n%s\n' "$1" "$DELIM" "$2" "$DELIM" >> "$GITHUB_ENV"
+          }
+
+          echo "🔐 Decoding GDRIVE_OAUTH2..."
+          DECODED=$(printf '%s' "$GDRIVE_OAUTH2" | base64 -d)
+
+          emit_masked GDRIVE_CLIENT_ID     "$(printf '%s' "$DECODED" | cut -d'|' -f1)"
+          emit_masked GDRIVE_REFRESH_TOKEN "$(printf '%s' "$DECODED" | cut -d'|' -f2)"
+
+          echo "✅ GDRIVE_CLIENT_ID and GDRIVE_REFRESH_TOKEN extracted from GDRIVE_OAUTH2"
+
       
+
       - name: Checkout source code at tag
         uses: actions/checkout@v5
         with:
@@ -252,11 +271,7 @@ jobs:
           mv app/build/outputs/apk/${{ env.VARIANT_FLAVOR }}/${{ env.VARIANT_TYPE }}/*.apk aaps-${{ env.VERSION }}${{ env.VERSION_SUFFIX }}.apk
           mv wear/build/outputs/apk/${{ env.VARIANT_FLAVOR }}/${{ env.VARIANT_TYPE }}/*.apk aaps-wear-${{ env.VERSION }}${{ env.VERSION_SUFFIX }}.apk
 
-      - name: Upload APKs to Google Drive
-        run: |
-          set -e
-          echo "🔐 Start uploading APKs to Google Drive..."
-
+      
           echo "📁 Checking or creating AAPS folder"
           AAPS_FOLDER_ID=$(curl -s -X GET \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -299,43 +314,11 @@ jobs:
               exit 26
             fi
 
-            echo "📄 Checking if file $NAME already exists in Google Drive..."
-            QUERY="name='${NAME}' and '${VERSION_FOLDER_ID}' in parents and trashed=false"
-            ENCODED_QUERY=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$QUERY'''))")
-            FILE_ID=$(curl -s \
-              -H "Authorization: Bearer $ACCESS_TOKEN" \
-              "https://www.googleapis.com/drive/v3/files?q=${ENCODED_QUERY}&fields=files(id)" \
-              | jq -r '.files[0].id')
+            
 
-            if [[ -n "$FILE_ID" && "$FILE_ID" != "null" ]]; then
-              echo "🗑️ Deleting existing file with ID: $FILE_ID"
-              curl -s -X DELETE \
-                -H "Authorization: Bearer $ACCESS_TOKEN" \
-                "https://www.googleapis.com/drive/v3/files/${FILE_ID}"
-            fi
+           
 
-            echo "⬆️ Uploading $FILE as $NAME to Google Drive..."
-            RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/gdrive_response.json \
-              -X POST \
-              -H "Authorization: Bearer $ACCESS_TOKEN" \
-              -F "metadata={\"name\":\"$NAME\", \"parents\":[\"$VERSION_FOLDER_ID\"]};type=application/json;charset=UTF-8" \
-              -F "file=@$FILE;type=application/vnd.android.package-archive" \
-              "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart")
-
-            HTTP_CODE="${RESPONSE: -3}"
-            if [[ "$HTTP_CODE" != "200" && "$HTTP_CODE" != "201" ]]; then
-              echo "❌ Upload failed with HTTP status: $HTTP_CODE"
-              cat /tmp/gdrive_response.json
-              exit 1
-            fi
-
-            echo "✅ Uploaded: $NAME"
-          }
-
-          upload_to_gdrive "aaps-${VERSION}${VERSION_SUFFIX}.apk" "aaps-${VERSION}${VERSION_SUFFIX}.apk"
-          upload_to_gdrive "aaps-wear-${VERSION}${VERSION_SUFFIX}.apk" "aaps-wear-${VERSION}${VERSION_SUFFIX}.apk"
-
-          echo "🎉 APKs successfully uploaded to Google Drive!"
+            
 
   # Configuration: Threshold-based cleanup
   # Clean up only occurs when total runs exceed: keep_runs + keep_threshold (e.g., 20 + 5 = 25)
